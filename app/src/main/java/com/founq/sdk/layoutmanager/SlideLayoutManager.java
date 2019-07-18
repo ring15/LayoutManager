@@ -35,7 +35,7 @@ public class SlideLayoutManager extends RecyclerView.LayoutManager {
         mItemViewHeight = (int) (getVerticalSpace() * 0.88f);
         mItemViewWidth = (int) (mItemViewHeight * 0.63f);
         mItemCount = getItemCount();
-        mScrollOffset = Math.min(Math.max(mItemViewWidth, mScrollOffset), mItemViewWidth * mScrollOffset);
+        mScrollOffset = Math.min(Math.max(mItemViewWidth, mScrollOffset), mItemViewWidth * mItemCount);
 
         //正式测量item的宽高
         layoutChild(recycler);
@@ -43,14 +43,16 @@ public class SlideLayoutManager extends RecyclerView.LayoutManager {
     }
 
     private void layoutChild(RecyclerView.Recycler recycler) {
+        if (getItemCount() == 0) return;
 
+        int bottomItemPosition = (int) Math.floor(mScrollOffset / mItemViewWidth);
         int remainSpace = getHorizontalSpace() - mItemViewWidth;//剩余部分的总长度
 
         int start = -1;
         List<Integer> lefts = new ArrayList<>();
         List<Integer> tops = new ArrayList<>();
         List<Float> scales = new ArrayList<>();
-        for (int i = mItemCount - 1, j = 0; i >= 0; i--, j++) {
+        for (int i = bottomItemPosition - 1, j = 0; i >= 0; i--, j++) {
             int left = getHorizontalSpace() - mItemViewWidth - 60 * i;
             int top = (getVerticalSpace() - mItemViewHeight) / 2;
             float scale = (1.0f - i * 0.1f);
@@ -61,8 +63,8 @@ public class SlideLayoutManager extends RecyclerView.LayoutManager {
             remainSpace = remainSpace - 60;
             //这边要加一个判断，不要将所有item都新建，只新建在屏幕内的部分
             if (remainSpace <= 0 && start < 0) {
-                lefts.set(j, left + 60);
-                scales.set(j, scale + 0.1f);
+//                lefts.set(j, left + 60);
+//                scales.set(j, scale + 0.1f);
                 start = i;
             }
         }
@@ -70,7 +72,7 @@ public class SlideLayoutManager extends RecyclerView.LayoutManager {
         detachAndScrapAttachedViews(recycler);
 
         start = start == -1 ? 0 : start;
-        for (int i = start; i < mItemCount; i++) {
+        for (int i = start; i < bottomItemPosition; i++) {
             View view = recycler.getViewForPosition(i);
             addView(view);
             measureChildWithExactlySize(view);
@@ -84,6 +86,18 @@ public class SlideLayoutManager extends RecyclerView.LayoutManager {
 
     }
 
+    @Override
+    public boolean canScrollHorizontally() {
+        return true;
+    }
+
+    @Override
+    public int scrollHorizontallyBy(int dx, RecyclerView.Recycler recycler, RecyclerView.State state) {
+        int pendingScrollOffset = mScrollOffset + dx;
+        mScrollOffset = Math.min(Math.max(mItemViewWidth, mScrollOffset + dx), mItemCount * mItemViewWidth);
+        layoutChild(recycler);
+        return mScrollOffset - pendingScrollOffset + dx;
+    }
 
     /**
      * 测量itemview的确切大小
