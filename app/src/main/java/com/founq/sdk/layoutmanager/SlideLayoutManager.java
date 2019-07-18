@@ -69,6 +69,16 @@ public class SlideLayoutManager extends RecyclerView.LayoutManager {
             }
         }
 
+
+        int childCount = getChildCount();
+        for (int i = childCount - 1; i >= 0; i--){
+            View childView = getChildAt(i);
+            int position = getPosition(childView);
+            if (position > bottomItemPosition || position < start){
+                removeAndRecycleView(childView, recycler);
+            }
+        }
+
         detachAndScrapAttachedViews(recycler);
 
         start = start == -1 ? 0 : start;
