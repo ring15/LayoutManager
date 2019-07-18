@@ -1,7 +1,6 @@
 package com.founq.sdk.layoutmanager;
 
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.View;
 
 import java.util.ArrayList;
@@ -10,7 +9,7 @@ import java.util.List;
 /**
  * Created by ring on 2019/7/18.
  */
-public class SlideLayoutManager extends RecyclerView.LayoutManager {
+public class HorizontalEchelonManager extends RecyclerView.LayoutManager {
 
     //item高度
     private int mItemViewWidth;
