@@ -1,7 +1,6 @@
 package com.founq.sdk.layoutmanager;
 
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.View;
 
 import java.util.ArrayList;
@@ -48,14 +47,21 @@ public class SlideLayoutManager extends RecyclerView.LayoutManager {
         int bottomItemPosition = (int) Math.floor(mScrollOffset / mItemViewWidth);
         int remainSpace = getHorizontalSpace() - mItemViewWidth;//剩余部分的总长度
 
+        //这个其实就想当于位移距离吧
+        //初值0，从item的宽度877到0
+        int bottomItemVisibleWidth = mScrollOffset % mItemViewWidth;
+
+        //初值0，从0到1
+        float percent = 1 - 1.0f * bottomItemVisibleWidth / mItemViewWidth;
+
         int start = -1;
         List<Integer> lefts = new ArrayList<>();
         List<Integer> tops = new ArrayList<>();
         List<Float> scales = new ArrayList<>();
         for (int i = bottomItemPosition - 1, j = 0; i >= 0; i--, j++) {
-            int left = getHorizontalSpace() - mItemViewWidth - 60 * i;
+            int left = (int) (getHorizontalSpace() - mItemViewWidth - 60 * i + 60 * percent);
             int top = (getVerticalSpace() - mItemViewHeight) / 2;
-            float scale = (1.0f - i * 0.1f);
+            float scale = (1.0f - i * 0.1f + 0.1f * percent);
             lefts.add(left);
             tops.add(top);
             scales.add(scale);
@@ -69,19 +75,19 @@ public class SlideLayoutManager extends RecyclerView.LayoutManager {
             }
         }
 
+        start = start == -1 ? 0 : start;
+
 
         int childCount = getChildCount();
-        for (int i = childCount - 1; i >= 0; i--){
+        for (int i = childCount - 1; i >= 0; i--) {
             View childView = getChildAt(i);
             int position = getPosition(childView);
-            if (position > bottomItemPosition || position < start){
+            if (position > bottomItemPosition || position < start) {
                 removeAndRecycleView(childView, recycler);
             }
         }
 
         detachAndScrapAttachedViews(recycler);
-
-        start = start == -1 ? 0 : start;
         for (int i = start; i < bottomItemPosition; i++) {
             View view = recycler.getViewForPosition(i);
             addView(view);
@@ -104,6 +110,7 @@ public class SlideLayoutManager extends RecyclerView.LayoutManager {
     @Override
     public int scrollHorizontallyBy(int dx, RecyclerView.Recycler recycler, RecyclerView.State state) {
         int pendingScrollOffset = mScrollOffset + dx;
+        //值的变化范围7016--877每个item的宽度是877，总共8个，7016
         mScrollOffset = Math.min(Math.max(mItemViewWidth, mScrollOffset + dx), mItemCount * mItemViewWidth);
         layoutChild(recycler);
         return mScrollOffset - pendingScrollOffset + dx;
