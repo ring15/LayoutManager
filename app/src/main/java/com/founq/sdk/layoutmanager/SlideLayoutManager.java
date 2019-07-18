@@ -1,6 +1,7 @@
 package com.founq.sdk.layoutmanager;
 
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 
 import java.util.ArrayList;
@@ -46,38 +47,45 @@ public class SlideLayoutManager extends RecyclerView.LayoutManager {
 
         int bottomItemPosition = (int) Math.floor(mScrollOffset / mItemViewWidth);
         int remainSpace = getHorizontalSpace() - mItemViewWidth;//剩余部分的总长度
+        int top = (getVerticalSpace() - mItemViewHeight) / 2;
+        float initScale = 1.0f;
 
         //这个其实就想当于位移距离吧
-        //初值0，从item的宽度877到0
+        //初值0，从item的宽度877到0（滑动时)
         int bottomItemVisibleWidth = mScrollOffset % mItemViewWidth;
 
-        //初值0，从0到1
+        //初值1，从0到1
         float percent = 1 - 1.0f * bottomItemVisibleWidth / mItemViewWidth;
 
-        int start = -1;
+
         List<Integer> lefts = new ArrayList<>();
-        List<Integer> tops = new ArrayList<>();
         List<Float> scales = new ArrayList<>();
         for (int i = bottomItemPosition - 1, j = 0; i >= 0; i--, j++) {
-            int left = (int) (getHorizontalSpace() - mItemViewWidth - 60 * i + 60 * percent);
-            int top = (getVerticalSpace() - mItemViewHeight) / 2;
-            float scale = (1.0f - i * 0.1f + 0.1f * percent);
-            lefts.add(left);
-            tops.add(top);
-            scales.add(scale);
-            //每加一个view，增加的显示宽度是60（上边的60*i），这边剩余部分就要减去60
             remainSpace = remainSpace - 60;
-            //这边要加一个判断，不要将所有item都新建，只新建在屏幕内的部分
-            if (remainSpace <= 0 && start < 0) {
-//                lefts.set(j, left + 60);
-//                scales.set(j, scale + 0.1f);
-                start = i;
+            initScale = initScale - 0.1f;
+            int left = (int) (remainSpace + percent * 60);//第一个就应该是remainspace，剩下的会多，不能用percent控制初值
+            float scale = initScale + percent * 0.1f;//第一个是initScale， 其余会多
+
+            if (remainSpace <= 0) {
+                lefts.add(remainSpace + 60);//让它基于remainspace+60，是为了让它不随着滑动而移动
+                scales.add(initScale + 0.1f);
+                break;
             }
+            lefts.add(left);//从0开始
+            scales.add(scale);
         }
 
-        start = start == -1 ? 0 : start;
+        if (bottomItemPosition < mItemCount) {//view是8个，size是9
+            int left = getHorizontalSpace() - bottomItemVisibleWidth;
+            lefts.add(0, left);
+            scales.add(0, 1.0f);
+            bottomItemPosition = bottomItemPosition + 1;//当bottomItemPosition = 4时，size = 5，会出现view获取-1的状态，所以将整体都往前移动一位
+        }
+//        else {//view是8个，size是8
+//            bottomItemPosition = bottomItemPosition - 1;//-1同理，但是下边要加+，j也变成<= bottomItemPosition
+//        }
 
-
+        int start = bottomItemPosition - lefts.size(); //-1应该是为了多加一个界面，第一个界面直接出去，多加带动画的
         int childCount = getChildCount();
         for (int i = childCount - 1; i >= 0; i--) {
             View childView = getChildAt(i);
@@ -88,18 +96,19 @@ public class SlideLayoutManager extends RecyclerView.LayoutManager {
         }
 
         detachAndScrapAttachedViews(recycler);
-        for (int i = start; i < bottomItemPosition; i++) {
-            View view = recycler.getViewForPosition(i);
+
+        for (int i = lefts.size() - 1, j = bottomItemPosition - lefts.size(); j < bottomItemPosition; i--, j++) {
+            View view = recycler.getViewForPosition(j);
             addView(view);
             measureChildWithExactlySize(view);
-            layoutDecoratedWithMargins(view, lefts.get(i), tops.get(i), lefts.get(i) + mItemViewWidth, tops.get(i) + mItemViewHeight);
-            //更新坐标系中心点位置
+            layoutDecoratedWithMargins(view, lefts.get(i), top,
+                    lefts.get(i) + mItemViewWidth,
+                    top + mItemViewHeight);
             view.setPivotX(0);
-            view.setPivotY(view.getHeight() / 2);
+            view.setPivotY(view.getWidth() / 2);
             view.setScaleX(scales.get(i));
             view.setScaleY(scales.get(i));
         }
-
     }
 
     @Override
