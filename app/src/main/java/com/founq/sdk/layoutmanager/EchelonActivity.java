@@ -15,7 +15,7 @@ public class EchelonActivity extends AppCompatActivity {
         setContentView(R.layout.activity_echelon);
         mRecyclerView = findViewById(R.id.recycler_view);
         mAdapter = new EchelonAdapter(this);
-        HorizontalEchelonManager manager = new HorizontalEchelonManager();
+        SlideLayoutManager manager = new SlideLayoutManager();
         mRecyclerView.setLayoutManager(manager);
         mRecyclerView.setAdapter(mAdapter);
     }
